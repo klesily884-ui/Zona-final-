@@ -1,43 +1,16 @@
 
-name: Gerar APK Android
-
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - principal
-      - main
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Baixar projeto
-        uses: actions/checkout@v4
-
-      - name: Configurar Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Preparar Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
       - name: Extrair projeto
         run: |
-          unzip -q ZonaFinal-projeto-Android.zip -d projeto
+          ZIP_FILE="$(find . -maxdepth 2 -type f -iname '*.zip' -print -quit)"
+          if [ -z "$ZIP_FILE" ]; then
+            echo "Nenhum arquivo ZIP encontrado no repositório"
+            exit 1
+          fi
+          echo "Arquivo encontrado: $ZIP_FILE"
+          unzip -q "$ZIP_FILE" -d projeto
           PROJECT_DIR="$(dirname "$(find projeto -name settings.gradle -print -quit)")"
+          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+            echo "Não foi encontrado settings.gradle dentro do ZIP"
+            exit 1
+          fi
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
-      - name: Compilar APK
-        run: gradle -p "$PROJECT_DIR" assembleDebug
-
-      - name: Salvar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Zona-Final-APK
-          path: projeto/**/app/build/outputs/apk/debug/*.apk
